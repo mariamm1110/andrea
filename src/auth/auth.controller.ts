@@ -1,34 +1,89 @@
-import { Controller, Get, Post, Body, Patch, Param, Delete } from '@nestjs/common';
+import { Controller, Get, Post, Body, Patch, Param, Delete, UseGuards, Req } from '@nestjs/common';
 import { AuthService } from './auth.service';
-import { CreateAuthDto } from './dto/create-user.dto';
+import { CreateUserDto } from './dto/create-user.dto';
 import { UpdateAuthDto } from './dto/update-auth.dto';
+import { LoginUserDto } from './dto/login-user.dto';
+import { Auth } from './decorators/auth.decorator';
+import { GetUser } from './decorators/get-user.decorator';
+import { User } from './entities/user.entity';
+import { ValidRoles } from './interfaces/valid-roles';
+import { RoleProtected } from './decorators/role-protected.decorator';
+import { AuthGuard } from '@nestjs/passport';
+import { UserRoleGuard } from './guards/user-role/user-role.guard';
 
 @Controller('auth')
 export class AuthController {
   constructor(private readonly authService: AuthService) {}
 
-  @Post()
-  create(@Body() createAuthDto: CreateAuthDto) {
-    return this.authService.create(createAuthDto);
+  @Post('register')
+  create(@Body() createUserDto: CreateUserDto) {
+    return this.authService.create(createUserDto);
   }
 
-  @Get()
-  findAll() {
-    return this.authService.findAll();
+  @Post('login')
+  loginUser(@Body() loginUserDto: LoginUserDto){
+    return this.authService.login(loginUserDto);
   }
 
-  @Get(':id')
-  findOne(@Param('id') id: string) {
-    return this.authService.findOne(+id);
+  @Get('check-auth-status')
+  @Auth()
+  checkAuthStatus(
+    @GetUser()user: User
+  ){
+    return this.authService.checkAuthStatus(user);
+
   }
 
-  @Patch(':id')
-  update(@Param('id') id: string, @Body() updateAuthDto: UpdateAuthDto) {
-    return this.authService.update(+id, updateAuthDto);
+  @Get('private')
+  @UseGuards( AuthGuard() ) //para proteger la ruta
+  testingPrivateRoute(
+
+    @Req() request: Express.Request,
+    @GetUser() user: User,
+    @GetUser('email') userEmail:string,
+
+    
+
+  ){
+
+    
+
+
+    return {
+      ok: true,
+      message: 'Hola eres vip',
+      user,
+      userEmail,
+      
+    }
   }
 
-  @Delete(':id')
-  remove(@Param('id') id: string) {
-    return this.authService.remove(+id);
+
+  @Get('private2')
+  // @SetMetadata('roles', ['admin','super-user'])
+  @RoleProtected(ValidRoles.superUser, ValidRoles.admin)
+  @UseGuards( AuthGuard(), UserRoleGuard )
+  privateRoute2(
+    @GetUser() user: User,
+  ){
+    return {
+      ok: true,
+      message: 'Hola eres vip2',
+      user,
+    }
   }
+
+  @Get('private3')
+  @Auth(ValidRoles.admin)
+  privateRoute3(
+    @GetUser() user: User,
+  ){
+    return {
+      ok: true,
+      message: 'Hola eres vip3',
+      user,
+    }
+  }
+
+  
 }

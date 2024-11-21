@@ -1,4 +1,4 @@
-import { IsDate, IsOptional, IsString, MinLength } from "class-validator";
+import { IsArray, IsDate, IsISO8601, IsOptional, IsString, MinLength } from "class-validator";
 
 export class CreateEventDto {
 
@@ -10,8 +10,16 @@ export class CreateEventDto {
     @MinLength(2)
     location: string;
 
-    @IsDate()
+    @IsISO8601()
     eventDate: Date;
+
+    @IsArray()
+    @IsOptional()
+    modelIds: string[];
+
+    @IsArray()
+    @IsOptional()
+    photoIds: string[];
 
     //! No c que hacer con modelos y fotos 
 

@@ -14,11 +14,13 @@ export class JwtStrategy extends PassportStrategy(Strategy){
     constructor(
         @InjectRepository( User )
         private readonly userRepository: Repository<User>,
-        configService: ConfigService
+        configService: ConfigService ,
+        
     ){
         super ({
         secretOrKey: configService.get('JWT_SECRET'),
-        jwtfromRequest: ExtractJwt.fromAuthHeaderAsBearerToken(),
+        jwtFromRequest: ExtractJwt.fromAuthHeaderAsBearerToken(),
+        ignoreExpiration: false
         });
     }
 
@@ -26,6 +28,10 @@ export class JwtStrategy extends PassportStrategy(Strategy){
 
         const {id}=payload;
         //validar payload
+
+        if (!id) {
+            throw new UnauthorizedException('Invalid token payload');
+        }
 
         const user= await this.userRepository.findOneBy({id});
         if(!user)

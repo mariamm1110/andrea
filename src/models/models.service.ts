@@ -1,4 +1,4 @@
-import { Injectable, Logger, NotFoundException } from '@nestjs/common';
+import { BadRequestException, Injectable, Logger, NotFoundException } from '@nestjs/common';
 
 import { InjectRepository } from '@nestjs/typeorm';
 import { Repository } from 'typeorm';
@@ -8,6 +8,8 @@ import { PaginationDto } from 'src/common/dtos/pagination.dto';
 import { Model } from './entities/model.entity';
 import { CreateModelDto } from './dto/create-model.dto';
 import { UpdateModelDto } from './dto/update-model.dto';
+import { Photo } from 'src/photos/entities/photo.entity';
+import { title } from 'process';
 
 
 @Injectable()
@@ -18,6 +20,8 @@ export class ModelsService {
   constructor(
     @InjectRepository(Model)
     private readonly modelRepository: Repository<Model>,
+    @InjectRepository(Photo)
+    private readonly photoRepository: Repository<Photo>
 
   ){}
 
@@ -44,6 +48,7 @@ export class ModelsService {
     const models= await this.modelRepository.find({
       take: limit,
       skip: offset,
+      relations: ['photos']
       
     });
 
@@ -54,7 +59,10 @@ export class ModelsService {
   async findOne(term: string) {
     let model: Model;
     
-    model = await this.modelRepository.findOneBy({id: term});
+    model = await this.modelRepository.findOne({
+      where: { id: term },
+      relations: ['photos']
+    })
 
     if(!model)
       throw new NotFoundException(`Model with id ${term} not found`);
@@ -100,6 +108,30 @@ export class ModelsService {
     }catch(error){
       handleDBExceptions(error);
     }
+  }
+
+  async addPhotoToModel(modelId: string, photoUrl: string, title: string) {
+    const model = await this.modelRepository.findOne({ where: {id: modelId}, relations: ['photos']});
+    if (!model) {
+      throw new NotFoundException(`Model with id ${modelId} not found`);
+    }
+
+    console.log('Adding photo with URL:', photoUrl, 'and title:', title);
+
+
+    if (!photoUrl || !title) {
+      throw new BadRequestException('Photo URL or title is missing');
+    }
+
+    const photo = this.photoRepository.create({
+       url: photoUrl, 
+       title: title,
+       models: [model]
+    });
+    console.log('Photo data before save:', photo);
+
+    await this.photoRepository.save(photo);
+    return photo;
   }
 
 }

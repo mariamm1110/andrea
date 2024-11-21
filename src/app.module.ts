@@ -7,6 +7,14 @@ import { FilesModule } from './files/files.module';
 import { ModelsModule } from './models/models.module';
 import { EventsModule } from './events/events.module';
 import { PhotosModule } from './photos/photos.module';
+import { Event } from './events/entities/event.entity';
+import { Model } from './models/entities/model.entity';
+import { Photo } from './photos/entities/photo.entity';
+import { User } from './auth/entities/user.entity';
+import { PaymentsModule } from './payments/payments.module';
+import { MembershipModule } from './membership/membership.module';
+import { AdminModule } from './admin/admin.module';
+
 
 
 @Module({
@@ -19,6 +27,7 @@ import { PhotosModule } from './photos/photos.module';
       database: process.env.DB_NAME,
       username: process.env.DB_USERNAME,
       password: process.env.DB_PASSWORD,
+      entities: [Event, Model, Photo, User, Photo],
       autoLoadEntities: true,
       synchronize: true,
     }),
@@ -28,6 +37,9 @@ import { PhotosModule } from './photos/photos.module';
     ModelsModule,
     EventsModule,
     PhotosModule,
+    PaymentsModule,
+    MembershipModule,
+    AdminModule,
 
   
   ],

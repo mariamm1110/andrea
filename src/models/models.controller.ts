@@ -38,4 +38,13 @@ export class ModelsController {
   remove(@Param('id') id: string) {
     return this.modelsService.remove(id);
   }
+
+  @Post(':id/photos')
+  addPhoto(
+    @Param('id') modelId: string,
+    @Body('photoUrl') photoUrl: string,
+    @Body('title') title: string
+  ) {
+    return this.modelsService.addPhotoToModel(modelId, photoUrl, title);
+  }
 }

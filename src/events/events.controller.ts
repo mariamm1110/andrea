@@ -10,11 +10,11 @@ import { PaginationDto } from 'src/common/dtos/pagination.dto';
 export class EventsController {
   constructor(private readonly eventsService: EventsService) {}
 
-  @Post()
-  @Auth(ValidRoles.admin)
-  create(@Body() createEventDto: CreateEventDto) {
-    return this.eventsService.create(createEventDto);
-  }
+  // @Post()
+  // @Auth(ValidRoles.admin)
+  // create(@Body() createEventDto: CreateEventDto) {
+  //   return this.eventsService.create(createEventDto);
+  // }
 
   @Get()
   findAll(@Query() paginationDto: PaginationDto) {
@@ -26,15 +26,15 @@ export class EventsController {
     return this.eventsService.findOne(term);
   }
 
-  @Patch(':id')
-  @Auth(ValidRoles.admin)
-  update(@Param('id') id: string, 
-  @Body() updateEventDto: UpdateEventDto) {
-    return this.eventsService.update(id, updateEventDto);
-  }
+  // @Patch(':id')
+  // @Auth(ValidRoles.admin)
+  // update(@Param('id') id: string, 
+  // @Body() updateEventDto: UpdateEventDto) {
+  //   return this.eventsService.update(id, updateEventDto);
+  // }
 
-  @Delete(':id')
-  remove(@Param('id') id: string) {
-    return this.eventsService.remove(id);
-  }
+  // @Delete(':id')
+  // remove(@Param('id') id: string) {
+  //   return this.eventsService.remove(id);
+  // }
 }

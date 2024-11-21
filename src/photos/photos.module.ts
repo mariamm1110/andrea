@@ -12,5 +12,6 @@ import { Model } from 'src/models/entities/model.entity';
   ],
   controllers: [PhotosController],
   providers: [PhotosService],
+  exports: [PhotosService]
 })
 export class PhotosModule {}

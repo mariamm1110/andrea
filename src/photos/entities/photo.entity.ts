@@ -17,7 +17,10 @@ export class Photo {
     @Column('text')
     url: string;
 
-    @Column('float')
+    @Column({
+        type: 'float',
+        default: 100
+    })    
     price: number;
 
     @Column({
@@ -32,7 +35,7 @@ export class Photo {
     @JoinTable()
     models: Model[];
 
-    @ManyToOne(() => Event, event => event.photos)
+    @ManyToOne(() => Event, (event) => event.photos, { nullable: true, onDelete: 'CASCADE' })
     event: Event;
 
 }

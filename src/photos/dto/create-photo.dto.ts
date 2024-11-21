@@ -9,11 +9,7 @@ export class CreatePhotoDto {
     @IsUrl()
     url: string;
 
-    @IsNumber()
-    price: number;
-
-    @IsEnum(['digital', 'print'])
-    type: 'digital' | 'print';
+    
 
     
 

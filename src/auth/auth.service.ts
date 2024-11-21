@@ -1,26 +1,92 @@
-import { Injectable } from '@nestjs/common';
-import { CreateAuthDto } from './dto/create-user.dto';
+import { BadRequestException, Injectable, InternalServerErrorException, UnauthorizedException } from '@nestjs/common';
+import { CreateUserDto } from './dto/create-user.dto';
 import { UpdateAuthDto } from './dto/update-auth.dto';
+import { InjectRepository } from '@nestjs/typeorm';
+import { User } from './entities/user.entity';
+import { Repository } from 'typeorm';
+import { JwtService } from '@nestjs/jwt';
+import * as bcrypt from 'bcrypt';
+import { JwtPayload } from './interfaces/jwt-payload.interface';
+import { LoginUserDto } from './dto/login-user.dto';
 
 @Injectable()
 export class AuthService {
-  create(createAuthDto: CreateAuthDto) {
-    return 'This action adds a new auth';
+
+  constructor(
+
+    @InjectRepository(User)
+    private readonly userRepository: Repository<User>,
+
+    private readonly jwtService: JwtService,
+  ){}
+
+
+  async create(CreateUserDto: CreateUserDto) {
+    
+    
+    try {
+      const {password, roles, ...userData}= CreateUserDto;
+
+      const user = this.userRepository.create({
+        ...userData,
+        password: bcrypt.hashSync(password, 10),
+      });
+
+      await this.userRepository.save(user);
+      delete user.password;
+
+      return {
+        ...user,
+        token: this.getJwtToken({id: user.id, roles: user.roles})
+      };
+    }catch(error){
+      this.handleDBErrors(error);
+    }
   }
 
-  findAll() {
-    return `This action returns all auth`;
+  async login (loginUserDto: LoginUserDto){
+
+    const {password, email}=loginUserDto
+
+    const user = await this.userRepository.findOne({
+
+      where: {email},
+
+      select: {email: true, password: true, id: true, roles: true}
+    });
+
+    if(!user)
+      throw new UnauthorizedException('not valid credentials');
+
+    if(!bcrypt.compareSync(password, user.password))
+      throw new UnauthorizedException('not valid credentials');
+
+    return {
+      ...user,
+      token: this.getJwtToken({id: user.id, roles: user.roles})
+    }
   }
 
-  findOne(id: number) {
-    return `This action returns a #${id} auth`;
+  async checkAuthStatus(user: User){
+    return {
+      ...user,
+      token:this.getJwtToken({id: user.id, roles: user.roles})
+    };
+
   }
 
-  update(id: number, updateAuthDto: UpdateAuthDto) {
-    return `This action updates a #${id} auth`;
+  private getJwtToken(payload: JwtPayload){
+
+    const token = this.jwtService.sign(payload);
+    return token;
+
   }
 
-  remove(id: number) {
-    return `This action removes a #${id} auth`;
+  private handleDBErrors(error:any): never{
+    if(error.code === '23505')
+      throw new BadRequestException(error.detail)
+    console.log(error)
+
+    throw new InternalServerErrorException('pls check your logs')
   }
 }

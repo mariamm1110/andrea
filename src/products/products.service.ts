@@ -47,18 +47,22 @@ export class ProductsService {
     }
   }
 
-  async findAll(paginationDto: PaginationDto) {
+  async findAll(paginationDto: PaginationDto, tag?: string) {
     
 
     const {limit=10, offset=0}= paginationDto;
 
-    const products= await this.productRepository.find({
-      take: limit,
-      skip: offset,
-      relations:{
-        images: true
+    const queryBuilder = this.productRepository.createQueryBuilder('product')
+      .leftJoinAndSelect('product.images', 'images')
+      .take(limit)
+      .skip(offset);
+
+      if (tag) {
+        console.log('Filtering by tag (Safe):', tag);
+        queryBuilder.andWhere(':tag = ANY(product.tags)', { tag });
       }
-    });
+
+    const products= await queryBuilder.getMany();
 
     return products.map((product)=>({
       ...product,
@@ -66,19 +70,30 @@ export class ProductsService {
     }));
   }
 
-  async findAllSafe(paginationDto: PaginationDto){
+  async findAllSafe(paginationDto: PaginationDto, user: Partial<User>, tag?:string){
 
     const {limit=10, offset=0}= paginationDto;
 
     //query products donde legal esta en true
-    const products = await this.productRepository.find({
-      where: { isLegal: true },
-      take: limit,
-      skip: offset,
-      relations: {
-        images: true
+    const queryBuilder = this.productRepository.createQueryBuilder('product')
+      .leftJoinAndSelect('product.images', 'images')
+      // .where('product.isLegal = :isLegal', {isLegal: true})
+      .take(limit)
+      .skip(offset);
+
+      if(!user?.roles?.includes('hidden-user')) {
+
+        queryBuilder.where('product.isLegal = :isLegal', { isLegal: true });
       }
-    });
+
+      if (tag) {
+        console.log('Filtering by tag:', tag);
+        // Usamos una consulta más compatible para filtrar por tags
+        queryBuilder.andWhere(':tag = ANY(product.tags)', { tag });
+      }
+
+
+    const products = await queryBuilder.getMany();
 
     return products.map((product) => ({
       ...product,
@@ -97,11 +112,10 @@ export class ProductsService {
     }else{
       const queryBuilder = this.productRepository.createQueryBuilder('prod');
       product = await queryBuilder
-        .where('UPPER(title =:title', {
-          title: term.toUpperCase(),  
-        })
+        .where('UPPER(prod.title) = :title', { title: term.toUpperCase() })
         .leftJoinAndSelect('prod.images', 'prodImages')
         .getOne();
+
     }
 
     if(!product)
@@ -110,33 +124,56 @@ export class ProductsService {
     return product;
   }
 
-  async findOneSafe(term: string){
-
+  async findOneSafe(term: string): Promise<Product> {
     let product: Product;
 
+    console.log('Received term:', term);
+
     if (isUUID(term)) {
-      product = await this.productRepository.findOne({
-        where: { id: term, isLegal: true }, // filtra isLegal true
-        relations: {
-          images: true,
-        },
-      });
+        console.log('Searching by UUID');
+        product = await this.productRepository.findOne({
+            where: { id: term, isLegal: true },
+            relations: { images: true }
+        });
     } else {
-      const queryBuilder = this.productRepository.createQueryBuilder('prod');
-      product = await queryBuilder
-        .where('UPPER(prod.title) = :title', { title: term.toUpperCase() })
-        .andWhere('prod.isLegal = :isLegal', { isLegal: true }) // Ensure the product is legal
-        .leftJoinAndSelect('prod.images', 'prodImages')
-        .getOne();
+        console.log('Searching by title or slug');
+        try {
+            product = await this.productRepository
+                .createQueryBuilder('prod')
+                .where('UPPER(prod.title) LIKE :title OR prod.slug = :slug', {
+                    title: `%${term.toUpperCase()}%`,
+                    slug: term,
+                })
+                .andWhere('prod.isLegal = :isLegal', { isLegal: true })
+                .leftJoinAndSelect('prod.images', 'prodImages')
+                .getOne();
+        } catch (error) {
+            console.error('Error during query execution:', error);
+            throw new Error('Query execution failed');
+        }
     }
 
     if (!product) {
-      throw new NotFoundException(`Legal product with ${term} not found`);
+        console.error(`Product not found with term: ${term}`);
+        throw new NotFoundException(`Legal product with term "${term}" not found`);
     }
-  
-    return product;
 
+    console.log('Product found:', product);
+    return product;
   }
+
+  async searchProducts(term: string) {
+    return this.productRepository
+      .createQueryBuilder('product')
+      .where('LOWER(product.title) LIKE :term', { term: `%${term.toLowerCase()}%` })
+      .andWhere('product.isLegal = true')
+      .limit(5)
+      .getMany();
+  }
+
+  
+
+
 
   async findOnePlain(term: string){
     const {images=[], ...rest}=await this.findOne(term);

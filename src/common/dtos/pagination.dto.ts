@@ -1,6 +1,6 @@
 import { ApiProperty } from "@nestjs/swagger";
 import { Type } from "class-transformer";
-import { IsOptional, IsPositive, Min } from "class-validator";
+import { IsOptional, IsPositive, IsString, Min } from "class-validator";
 
 export class PaginationDto{
 
@@ -23,4 +23,8 @@ export class PaginationDto{
     @Min(0)
     @Type(()=> Number) //enable implicit coversions
     offset?: number;
+
+    @IsOptional()
+    @IsString()
+    tag?: string
 }

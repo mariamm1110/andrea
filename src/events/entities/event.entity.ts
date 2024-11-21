@@ -25,7 +25,7 @@ export class Event {
     @JoinTable()  // This decorator is needed on the owning side of the relationship
     models: Model[];
 
-    @OneToMany(()=> Photo, photo => photo.event)
+    @OneToMany(()=> Photo, photo => photo.event, {cascade: true})
     photos: Photo[];
 
 
